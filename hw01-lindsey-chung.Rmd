@@ -1,0 +1,216 @@
+---
+title: "hw01-lindsey-chung.Rmd"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data Import
+
+```{r}
+
+column_names = c(
+  'symboling',
+  'normalized_losses',
+  'make',
+  'fuel_type',
+  'aspiration',
+  'num_of_doors',
+  'body_style',
+  'drive_sheels',
+  'engine_location',
+  'wheel_base',
+  'length',
+  'width',
+  'height',
+  'curb_weight',
+  'engine_type',
+  "num_of_cylanders",
+  'engine_size',
+  'fuel_system',
+  'bore',
+  'stroke',
+  'compression_ratio',
+  'horsepower',
+  'peak_rpm',
+  'city_mpg',
+  'highway_mpg',
+  'price'
+)
+
+column_types = c(
+  'double',
+  'double',
+  'character',
+  'character',
+  'character',
+  'character',
+  'character',
+  'character',
+  'character',
+  'double',
+  'double',
+  'double',
+  'double',
+  'integer',
+  'character',
+  'character',
+  'integer',
+  'character',
+  'double',
+  'double',
+  'double',
+  'integer',
+  'integer',
+  'integer',
+  'integer',
+  'integer'
+)
+
+cars = read.csv(
+  'imports-85.data',
+  stringsAsFactors = FALSE,
+  col.names = column_names,
+  colClasses = column_types,
+  na.strings = '?'
+)
+
+str(cars)
+
+library(readr)
+
+cars2 = read_csv(
+  'imports-85.data',
+  col_names = column_names,
+  col_types = cols('d', 'd', 'c', 'c', 'c', 'c', 'c', 'c', 'c', 'd', 'd', 'd', 'd', 'i', 'c', 'c', 'i', 'c', 'd', 'd', 'd', 'i', 'i', 'i', 'i' ,'i')
+)
+
+str(cars2)
+
+```
+
+## Technical Questions about Importing Data
+a. the first row becomes column names
+b. the program will make some generic column names (V1, V2, V3, etc.)
+c. the data type is assumed to be character
+d. the default data types take the least amount of memory. Any changes, such as specifying data types, will only add to the necessary memory because it will take memory to make this change
+e. since matrices are atomic, all the values are converted into characters
+
+## Practice Base Plotting
+
+```{r}
+
+hist(
+  cars[ , 'price'],
+  main = 'Price Histogram',
+  xlab = 'price ($)',
+  col = c('red', 'orange', 'yellow', 'green', 'blue', 'purple', 'red', 'orange', 'yellow')
+)
+
+boxplot(
+  cars[ , 'horsepower'],
+  horizontal = TRUE
+)
+
+library(plyr)
+body_freq = data.frame(table(cars[ , 'body_style']))
+ordered_body_freq = body_freq[order(body_freq[ , 2], decreasing = TRUE), ]
+barplot(
+  ordered_body_freq$Freq,
+  #names.arg = ordered_body_freq$Var1,
+  cex.names = 0.76,
+  xlab = 'Body Type',
+  ylab = 'Frequency',
+  main = "Body Style Barplot"
+)
+
+stars(
+  cars[cars$aspiration == 'turbo', c('wheel_base', 'length', 'width', 'height', 'price')],
+  labels = cars[cars$aspiration == 'turbo', 'make'],
+  cex = 0.25
+)
+```
+
+## Summaries
+
+```{r}
+
+mean(cars[cars$fuel_type == 'gas', 'price'], na.rm = TRUE)
+mean(cars[cars$fuel_type == 'diesel', 'price'], na.rm = TRUE)
+
+cars[cars$num_of_cylanders == 'twelve', 'make']
+
+library(plyr)
+diesel = cars[cars$fuel_type == 'diesel', 'make']
+diesel_count = table(diesel)
+diesel_count[which.max(diesel_count)]
+
+cars[which.max(cars$horsepower), 'price']
+
+tail(cars[order(cars$city_mpg, decreasing = TRUE), 'city_mpg'], n = nrow(cars) / 10)
+
+head(cars[order(cars$highway_mpg, decreasing = TRUE), 'highway_mpg'], n = nrow(cars) / 10)
+
+median(tail(cars[order(cars$city_mpg, decreasing = TRUE), 'price'], n = nrow(cars) / 10), na.rm = TRUE)
+
+```
+
+## Technical Questions about Data Frames
+a. the program returns NULL
+b. 4
+c. mpg is the name of a column in a data frame, not an object. Thus, it can not be found if not in quotation marks.
+d. Yes. Data frames are made of ????
+e. Each column is made into a list and is separated from the rest of the lists
+f. as.data.frame(abc)
+
+## Correlations of Quantitative Variables
+
+```{r}
+
+qdat = Filter(is.numeric, na.omit(cars))[ , c(-1, -2)]
+correlation = cor(qdat)
+
+library(corrplot)
+corrplot(correlation, method = 'color')
+corrplot(correlation, method = 'circle')
+
+```
+
+There seem to be generally positive correlations between wheel base, length, width, height, curbweight, engine size, and bore. There is also a very strong positive correlation between city mpg and highway mpg. There are negative correlations between mpg and length, width, curb weight, and engine size.
+
+## Principal Components Analysis
+
+```{r}
+
+pca_cars = prcomp(
+  qdat,
+  scale. = TRUE
+)
+
+eigenvalues = pca_cars$sdev^2
+eigenvalues
+
+proportion = sum(eigenvalues[1:3]) / sum(eigenvalues)
+proportion
+
+df_pca = data.frame(pca_cars$x)
+
+plot(
+  df_pca$PC1,
+  df_pca$PC2,
+  type = 'p'
+)
+
+df_loading = data.frame(pca_cars$rotation)
+
+plot(
+  df_loading$PC1,
+  df_loading$PC2,
+  type = 'p'
+)
+
+```
+
+The first vector has a greater eigenvalue and therefore is more representative of the data. There are a lot of points that are very close, meaning that there are lot of car individuals that are more or less similar in lots of ways.
